@@ -1,28 +1,31 @@
 %% 控制参数
-cutseries=1;
-figplot=1;
 
+% 仿真参数 频率：6.32Hz(变流器) 
+var_names = ["TurOn" "ConvOn" "Freq" "Stept" "Ampl"];
+var_values = ["on" "off" "6.32" "0" "10"];
+
+issim = 1;% 是否仿真
+time = "100";% 仿真时间
+
+cutseries=1; % 是否切除前面不稳定的波形
+steptime=80; % 切除时间
+
+figplot=1; % 是否画图
+
+%% 仿真过程
+if issim ==1
+    out = dosim(var_names,var_values,time);
+end
 
 Macsig = out.Macsig;
-GridSig= out.Gridsig;
-%% 截取振荡波形
-if cutseries==1
-    steptime=70;
-    endtime=Macsig.Electromagnetic_torque_Te__pu_.TimeInfo.End;
-    Macsig.Electromagnetic_torque_Te__pu_=getsampleusingtime(Macsig.Electromagnetic_torque_Te__pu_,steptime,endtime);
-    Macsig.idsA=getsampleusingtime(Macsig.idsA,steptime,endtime);
-    Macsig.iqsA=getsampleusingtime(Macsig.iqsA,steptime,endtime);
-    Macsig.phidrA=getsampleusingtime(Macsig.phidrA,steptime,endtime);
-    Macsig.phiqrA=getsampleusingtime(Macsig.phiqrA,steptime,endtime);
-    Macsig.Rotor_flux_phir_d__pu_=getsampleusingtime(Macsig.Rotor_flux_phir_d__pu_,steptime,endtime);
-    Macsig.Rotor_flux_phir_q__pu_=getsampleusingtime(Macsig.Rotor_flux_phir_q__pu_,steptime,endtime);
-    Macsig.Rotor_speed__wm_=getsampleusingtime(Macsig.Rotor_speed__wm_,steptime,endtime);
-    Macsig.Stator_flux_phis_d__pu_=getsampleusingtime(Macsig.Stator_flux_phis_d__pu_,steptime,endtime);
-    Macsig.Stator_flux_phis_q__pu_=getsampleusingtime(Macsig.Stator_flux_phis_q__pu_,steptime,endtime);
-    Macsig.VdrA=getsampleusingtime(Macsig.VdrA,steptime,endtime);
-    Macsig.VqrA=getsampleusingtime(Macsig.VqrA,steptime,endtime);
+Gridsig = out.Gridsig;
 
+if cutseries ==1
+    Macsig = cutserie(Macsig,steptime);
+    Gridsig = cutserie(Gridsig,steptime);
 end
+
+
 
 %%  计算参数
 Xs=2.5596;
@@ -153,3 +156,28 @@ En2=intlist(GQ,log(GVi));
 En=En1+En2;
 
 
+function out = dosim(var_names,var_values,time)
+    % 调用simulink模块进行仿真
+    mdl = "power_wind_dfig_avg";
+    in = Simulink.SimulationInput(mdl);
+    in = in.setModelParameter("StopTime",time);
+    for i = 1: length(var_names)
+        in = in.setBlockParameter(mdl + "/Wind Farm",var_names(i),var_values(i));
+    end
+    fprintf("Start Simulation...\n")
+    tic
+    out = sim(in);
+    toc
+    fprintf("Simulation End.\n")
+end
+
+function cuttered = cutserie(series_struct,steptime)
+    % 裁剪仿真结果
+    fields = fieldnames(series_struct);
+    endtime = series_struct.(fields{1}).TimeInfo.End;
+    for i = 1:length(fields)
+        key= fields{i};
+        series_struct.(key)= getsampleusingtime(series_struct.(key),steptime,endtime);
+    end
+    cuttered = series_struct;
+end
