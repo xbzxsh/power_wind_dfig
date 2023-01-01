@@ -1,14 +1,14 @@
 %% 控制参数
 
-% 仿真参数 频率：6.32Hz(变流器) 
+% 仿真参数 频率：6.32Hz
 var_names = ["TurOn" "ConvOn" "Freq" "Stept" "Ampl"];
-var_values = ["on" "off" "6.32" "0" "10"];
+var_values = ["on" "off" "6.32" "0" "3"];
 
 issim = 1;% 是否仿真
 time = "100";% 仿真时间
 
 cutseries=1; % 是否切除前面不稳定的波形
-steptime=80; % 切除时间
+steptime=20; % 切除时间
 
 figplot=1; % 是否画图
 
@@ -42,6 +42,7 @@ s=1-Wr;
 t=Macsig.Electromagnetic_torque_Te__pu_.Time;
 Wm=Macsig.Rotor_speed__wm_.Data;
 Te=Macsig.Electromagnetic_torque_Te__pu_.Data;
+Tm=Macsig.Tm.Data;
 
 %第二部分能量
 % iq=Macmeasure.Stator_measurements.Stator_current_is_q__pu_.Data;
@@ -65,14 +66,14 @@ phiqs=Macsig.Stator_flux_phis_q__pu_.Data;
 phids=Macsig.Stator_flux_phis_d__pu_.Data;
 phis=phids+1j*phiqs;
 %----
-delta=angle(phir)-angle(phis);
+delta=angle(phis)-angle(phir);
 for i=1:length(delta)
     if delta(i)<0
         delta(i)=delta(i)+2*pi;
     end
 end
 %--
-Pe=Te.*Wm;
+Pe=(Tm).*Wm;
 Eg3=intlist(Pe,delta);
 
 %第一部分能量
